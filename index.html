@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 活用の法規制と技術スタック — 医療で「使う」と「作る」の両面</title>
+<meta name="description" content="医療・臨床検査領域での AI 活用を、業務で生成AIを「使う」側と、医療AIを製品に「作り込む」（SaMD）側の両面で、法規制（個情法・次世代医療基盤法・AI事業者ガイドライン・薬機法・EU AI Act）と技術スタック（Bedrock/SageMaker 等）に分解する医療DXシリーズの一編。">
+<style>
+:root{
+  --primary:#0e4d92; --primary-light:#2563eb; --accent:#6d28d9; --accent2:#8b5cf6;
+  --use:#0891b2; --use-bg:#ecfeff; --use-bd:#a5e8f0;
+  --make:#c2410c; --make-bg:#fff7ed; --make-bd:#fed7aa;
+  --warn:#d97706; --warn-bg:#fffbeb; --warn-bd:#fde68a;
+  --ok:#059669; --ok-bg:#ecfdf5; --ok-bd:#a7f3d0;
+  --bg:#f8fafc; --bg-card:#fff; --text:#1f2937; --text-soft:#6b7280; --border:#e5e7eb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Hiragino Sans","Yu Gothic","Meiryo",-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.75;font-size:15px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+a{color:var(--primary-light)}
+code{background:#f1f5f9;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:12.5px;font-family:"SFMono-Regular",Consolas,monospace}
+
+header{background:linear-gradient(135deg,#0e4d92 0%,#4338ca 55%,#6d28d9 100%);color:#fff;padding:52px 0 42px;text-align:center}
+header .tag{display:inline-block;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:4px 14px;border-radius:20px;margin-bottom:16px}
+header .tag .l{opacity:.85;font-weight:500}
+header h1{font-size:26px;font-weight:700;margin-bottom:12px;line-height:1.45}
+header p{font-size:14.5px;opacity:.93;max-width:790px;margin:0 auto}
+
+section{margin:30px 0}
+h2{font-size:20px;color:var(--primary);font-weight:700;margin:34px 0 14px;padding-bottom:9px;border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:10px}
+h2 .n{background:var(--accent);color:#fff;font-size:14px;width:28px;height:28px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+h2.use{color:var(--use);border-bottom-color:var(--use)} h2.use .n{background:var(--use)}
+h2.make{color:var(--make);border-bottom-color:var(--make)} h2.make .n{background:var(--make)}
+h3{font-size:16px;color:var(--primary);margin:20px 0 8px}
+p{margin:9px 0}
+.lead{color:var(--text-soft);font-size:14px}
+ul,ol{margin:8px 0 8px 22px}
+li{margin:5px 0}
+
+.intro{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px 26px;margin:28px 0 8px}
+.intro h2{margin-top:0;border:0;padding:0;font-size:17px}
+.callout{border-radius:10px;padding:15px 19px;margin:14px 0}
+.callout.acc{background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid var(--accent)}
+.callout .lab{font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:4px;color:var(--accent)}
+.note{background:var(--warn-bg);border:1px solid var(--warn-bd);border-left:4px solid var(--warn);border-radius:10px;padding:14px 18px;margin:14px 0;font-size:13.5px}
+.note b{color:var(--warn)}
+
+/* 使う vs 作る の対比 */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0}
+.split .col{border-radius:12px;padding:18px 20px}
+.split .use{background:var(--use-bg);border:1px solid var(--use-bd)}
+.split .make{background:var(--make-bg);border:1px solid var(--make-bd)}
+.split .col h3{margin-top:0}
+.split .use h3{color:var(--use)} .split .make h3{color:var(--make)}
+.split .col .sub{font-size:12px;font-weight:700;letter-spacing:.04em;margin-bottom:8px}
+.split .use .sub{color:var(--use)} .split .make .sub{color:var(--make)}
+.split .col ul{margin-left:18px;font-size:13.5px} .split .col li{margin:4px 0}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:10px 0}
+th{background:var(--primary);color:#fff;font-weight:600;padding:10px 12px;text-align:left;font-size:12.5px}
+td{padding:10px 12px;border-top:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:#fafbfc}
+th.use{background:var(--use)} th.make{background:var(--make)}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.p-use{background:var(--use-bg);color:var(--use);border:1px solid var(--use-bd)}
+.p-make{background:var(--make-bg);color:var(--make);border:1px solid var(--make-bd)}
+
+.chk{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:8px 8px 8px 0}
+.chk li{list-style:none;margin:0;padding:9px 14px 9px 40px;position:relative;border-bottom:1px solid #f1f5f9;font-size:13.5px}
+.chk li:last-child{border-bottom:0}
+.chk li::before{content:"!";position:absolute;left:16px;top:9px;color:var(--make);font-weight:700}
+.chk li b{color:var(--primary)}
+
+footer{margin:42px 0 60px}
+.refs{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;font-size:12.5px}
+.refs h3{margin-top:0}
+.refs ul{margin-left:18px} .refs li{margin:4px 0}
+.disc{max-width:820px;margin:16px auto 8px;font-size:11.5px;color:var(--text-soft);text-align:left;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px}
+.sig{text-align:center;color:var(--text-soft);font-size:12.5px}
+.series-nav{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13px}
+.series-nav b{color:var(--primary)} .series-nav a{display:inline-block;margin:3px 8px 3px 0}
+
+@media(max-width:720px){
+  header h1{font-size:20px}
+  .split{grid-template-columns:1fr}
+  table{font-size:12px} th,td{padding:8px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="tag">医療DX シリーズ <span class="l">／ AI 活用編</span></div>
+    <h1>AI 活用の法規制と技術スタック<br>医療で「使う」と「作る」の両面</h1>
+    <p>医療・臨床検査で AI を扱うとき、規制の重さは「<b>業務で生成AIを使う</b>」のと「<b>医療AIを製品に作り込む（SaMD）</b>」とで桁違いに違う。両者を分けて、法規制（個情法・次世代医療基盤法・AI事業者ガイドライン・薬機法・EU AI Act）と技術スタック（Bedrock／SageMaker 等）に落とす。</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="intro">
+    <h2>「使う」と「作る」を混同しないことが、最初の安全設計</h2>
+    <p>医療 AI には性格の違う2つの活用がある。<b>① 業務で使う</b>（議事録要約、文献調査、コード生成、問い合わせ対応に生成AIを使う）と、<b>② 製品に作り込む</b>（検査値の異常検知や診断支援を自社システムの機能にする）。前者の主リスクは<b>データ保護</b>、後者は<b>医療機器としての承認</b>——監督官庁も、求められる手続きも、責任の重さも別物。</p>
+    <p>事故の典型は両者の混同。「便利だから」と患者データを生成AIに貼る（①のデータ保護違反）、「AIが値を出すだけ」と承認なしで診断支援機能を載せる（②の薬機法違反）。<b>まず自分の活用がどちらか、あるいは両方かを切り分ける</b>のが出発点。</p>
+    <p class="lead">本編はシリーズ②「法規制対応と技術要件」・データインテグリティ編の延長。AI が扱うデータの完全性は DI 編（ALCOA+）に、基盤実装は④セキュア実装に接続する。</p>
+  </div>
+
+  <div class="series-nav">
+    <b>医療DX シリーズ：</b>
+    <a href="https://kioh-daiv.github.io/medical-dx-cloud-guides/">目次</a>
+    <a href="https://kioh-daiv.github.io/medical-dx-roadmap-overview/">① 工程表 全体像</a>
+    <a href="https://kioh-daiv.github.io/lis-cloud-compliance-guide/">② 法規制対応と技術要件</a>
+    <a href="https://kioh-daiv.github.io/lis-procurement-qualifications/">③ 受注資格</a>
+    <a href="https://kioh-daiv.github.io/lis-web-secure-implementation/">④ セキュア実装</a>
+    <a href="https://kioh-daiv.github.io/lis-data-integrity-guide/">データインテグリティ</a>
+    <b style="margin-left:6px">★ AI 活用（本編）</b>
+  </div>
+
+  <!-- 0 スコープと網羅性 -->
+  <section>
+    <h2>このガイドのスコープと網羅性の根拠</h2>
+    <h3>スコープ宣言（対象と対象外）</h3>
+    <table>
+      <thead><tr><th>区分</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td><b>対象</b></td><td>医療・臨床検査での AI 活用を<b>「使う（生成AI業務活用）」と「作る（SaMD）」の2面</b>で、法規制（個情法・次世代医療基盤法・AI事業者GL・薬機法・EU AI Act）と技術スタック（Bedrock／SageMaker 等）に落とす。</td></tr>
+        <tr><td><b>対象外</b></td><td>① 網羅的な医療情報法令適合（全体像）→ シリーズ<b>②「法規制対応と技術要件」</b>（SaMD 該当性判定・次世代医療基盤法の認定制度の base も②）。② DI（ALCOA+）の詳細 → <b>データインテグリティ編</b>。③ Web 基盤のセキュア実装 → <b>④</b>。④ 薬事承認プロセスの実務詳細 → ②＋PMDA 相談。</td></tr>
+      </tbody>
+    </table>
+    <h3>網羅性の根拠 — なぜ「これで足りる」と言えるか</h3>
+    <p>AI 活用の漏れを防ぐため<b>2軸で機械的に配置</b>する。</p>
+    <ul>
+      <li><b>軸1：AI 活用の2形態</b>（使う／作る）＝ 医療における AI の関わり方を<b>網羅</b>。「業務で使う」と「製品に作り込む」で規制の重さが分かれる（§1）。</li>
+      <li><b>軸2：法体系の階層</b> — 一般法（個情法）／業法（薬機法・医師法）／分野法（次世代医療基盤法）／ソフトロー（AI事業者ガイドライン）／国際（EU AI Act・FDA）。各規制をこの階層に配置し、抜けを確認（§2・§3）。</li>
+    </ul>
+    <p class="lead">この2軸で各規制を機械的に配置する。残リスクは<b>「①追加技術／②運用／③契約・SLA／④受容」の4分類</b>で引き取り先を明示する（各表の「実務での注意」列）。</p>
+  </section>
+
+  <!-- 1 マップ -->
+  <section>
+    <h2><span class="n">1</span>まず切り分ける：使う / 作る の規制マップ</h2>
+    <div class="split">
+      <div class="col use">
+        <div class="sub">① 業務で「使う」</div>
+        <h3>生成AI・LLM の活用</h3>
+        <ul>
+          <li>議事録・文献要約、調査、コード生成、社内QA</li>
+          <li>主リスク＝<b>データ保護</b>（患者情報の漏えい・目的外利用）と<b>出力の信頼性</b>（ハルシネーション）</li>
+          <li>主管：個情法（個人情報保護委員会）／次世代医療基盤法／AI事業者ガイドライン</li>
+          <li>承認は<b>不要</b>だが、医行為の最終判断は医師（医師法）</li>
+        </ul>
+      </div>
+      <div class="col make">
+        <div class="sub">② 製品に「作り込む」</div>
+        <h3>医療AI（SaMD）の開発</h3>
+        <ul>
+          <li>診断支援・異常検知・予後予測を製品機能にする</li>
+          <li>主リスク＝<b>医療機器としての安全性・有効性</b></li>
+          <li>主管：薬機法（PMDA 承認・認証）／EU は AI Act＋MDR/IVDR／米は FDA</li>
+          <li>承認・認証が<b>必須</b>（クラス分類でリスク相応の手続き）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout acc">
+      <div class="lab">判断の分かれ目</div>
+      「ソフトが医療目的で、その出力が<b>診断・治療の判断に使われる</b>」なら、それは ② のプログラム医療機器（SaMD）になりうる。検査値に注釈を出すだけの一般的な業務支援は ① で済むことが多いが、<b>「医療目的」「診断への影響度」で線引き</b>される。グレーゾーンは PMDA の該当性相談で確定させる。
+    </div>
+  </section>
+
+  <!-- 2 使う -->
+  <section>
+    <h2 class="use"><span class="n">2</span>【使う】生成AI業務活用の法規制と注意</h2>
+    <table>
+      <thead><tr><th class="use">規制 / ルール</th><th class="use">何を要求するか</th><th class="use">実務での注意</th></tr></thead>
+      <tbody>
+        <tr><td><b>個人情報保護法</b><br>医療情報は<b>要配慮個人情報</b></td><td>取得に原則<b>本人同意</b>、第三者提供の制限、安全管理措置。オプトアウト提供は不可</td><td>患者データを外部 AI サービスに渡す＝第三者提供／目的外利用になりうる。<b>入力前に非識別化</b>、契約で学習利用を禁止</td></tr>
+        <tr><td><b>次世代医療基盤法</b><br>改正法 2023年公布・<b>2024年4月1日施行</b></td><td><b>仮名加工医療情報</b>を創設。認定事業者経由で、研究開発・AI学習に医療データを合法利用できるルート（本人通知ベース）</td><td>大規模な医療データの AI 学習利用は、自前で集めるより<b>認定スキーム</b>に乗るのが筋。I型／II型の認定要件を確認</td></tr>
+        <tr><td><b>AI事業者ガイドライン</b><br>総務省・経産省 <b>第1.1版（2025年3月28日）</b></td><td>AI の<b>開発者・提供者・利用者</b>の3立場別に、人間中心・安全性・公平性・透明性・アカウンタビリティ等の指針。広島AIプロセス・EU AI Act も反映</td><td>法的強制力はないが<b>事実上の標準</b>。自社が3立場のどれか整理し、AIガバナンス体制（リスク評価・モニタリング）を文書化</td></tr>
+        <tr><td><b>医師法（第17条 ほか）</b></td><td>診断・治療＝<b>医行為は医師の独占</b>。AI は<b>あくまで補助</b>、最終判断は医師</td><td>生成AIの出力を「診断」として患者に提示しない。<b>医師のレビューを挟む（ヒューマンインザループ）</b>建付けを必須に</td></tr>
+        <tr><td><b>3省2ガイドライン</b>（クラウド・外部サービス）</td><td>外部サービス利用時の安全管理・委託先管理。データの所在・経路の管理</td><td>生成AI も「外部サービス」。リージョン・データ保存・ログを安全管理の枠で評価（DI編・②と接続）</td></tr>
+      </tbody>
+    </table>
+    <div class="note"><b>生成AI特有の3つの罠。</b> ①<b>ハルシネーション</b>（もっともらしい誤情報）＝医療では致命的、根拠提示（RAG）と人間検証で抑える。②<b>入力データの学習利用</b>＝既定で学習に使われる消費者向けサービスに患者情報を入れない、法人/API で<b>学習させない設定</b>を契約で担保。③<b>プロンプトインジェクション</b>＝外部文書経由で指示が乗っ取られる、入力の信頼境界を設計する。</div>
+  </section>
+
+  <!-- 3 作る -->
+  <section>
+    <h2 class="make"><span class="n">3</span>【作る】医療AIプロダクト（SaMD）の法規制と注意</h2>
+    <table>
+      <thead><tr><th class="make">規制 / 制度</th><th class="make">何を要求するか</th><th class="make">実務での注意</th></tr></thead>
+      <tbody>
+        <tr><td><b>薬機法 — プログラム医療機器（SaMD）</b></td><td>医療目的のソフトは医療機器。リスクに応じ<b>クラスII〜IV</b>で認証（登録認証機関）／承認（PMDA）。一般医療機器(I)以外は規制対象</td><td>まず<b>該当性</b>（医療機器か）と<b>クラス分類</b>を確定。PMDA 該当性相談・対面助言を早期に使う</td></tr>
+        <tr><td><b>IDATEN（変更計画確認制度）</b></td><td>承認時に<b>変更計画</b>を示しておけば、範囲内の改良は<b>事後届出</b>で可。AI の<b>継続学習</b>に薬事で対応する仕組み</td><td>継続学習の前提として<b>性能モニタリング体制</b>と<b>性能低下時の自動停止</b>が要る。学習データの DI（出所・完全性）が承認の土台</td></tr>
+        <tr><td><b>EU AI Act</b><br>2024年8月発効</td><td>医療機器に組み込む AI は原則<b>高リスク</b>。リスク管理・データガバナンス・透明性・人間による監督・ログ保持を要求。MDR/IVDR と二重適用</td><td>適用は<b>2027年8月</b>（Class IIb/III・C/D IVD 組込みAI）。ただし <b>Digital Omnibus で2028年8月への延期が議論中</b>（2026年時点、要追跡）。欧州市場を狙うなら設計段階から織り込む</td></tr>
+        <tr><td><b>米 FDA</b>（参考）</td><td>AI/ML-based SaMD。<b>PCCP（事前変更管理計画）</b>で継続学習を前承認、<b>GMLP</b>（Good Machine Learning Practice）原則</td><td>IDATEN と思想は同型（変更を事前計画で承認）。日米欧で<b>継続学習の薬事ルート</b>が収束しつつある</td></tr>
+      </tbody>
+    </table>
+    <div class="callout acc">
+      <div class="lab">作る側の本質</div>
+      AI/ML 医療機器の難所は「<b>学習で性能が変わる</b>」こと。従来の医療機器（仕様が固定）と違い、再学習で挙動が動く。だから日米欧とも「<b>変更を事前計画で承認（IDATEN／PCCP）＋ 市販後の性能監視 ＋ 劣化時の停止</b>」という同じ解に向かっている。そしてその監視ログ・学習データの信頼性は、結局 <b>データインテグリティ（ALCOA+）</b>の話に戻る——DI 編と地続き。
+    </div>
+  </section>
+
+  <!-- 4 技術スタック 使う -->
+  <section>
+    <h2 class="use"><span class="n">4</span>技術スタック【使う側】</h2>
+    <table>
+      <thead><tr><th class="use">目的</th><th class="use">技術 / AWS 例</th><th class="use">DI・規制との対応</th></tr></thead>
+      <tbody>
+        <tr><td>患者情報を渡さない／非識別化</td><td>Amazon Comprehend Medical（医療NLP・PHI 検出）でマスキング、入力前フィルタ</td><td>個情法（要配慮）・第三者提供回避</td></tr>
+        <tr><td>学習に使わせない基盤</td><td>Amazon Bedrock（入力をモデル学習に使用しない）、国内リージョン／ガバメントクラウド</td><td>個情法・次世代医療基盤法・3省2GL</td></tr>
+        <tr><td>根拠提示でハルシネーション抑制</td><td>RAG（Knowledge Bases for Bedrock）、出典リンク併記</td><td>出力の検証可能性、医師レビューの土台</td></tr>
+        <tr><td>有害出力・PII の遮断</td><td>Guardrails for Bedrock（PII フィルタ・トピック制限）、プロンプトインジェクション対策（入力信頼境界）</td><td>安全性・データ保護</td></tr>
+        <tr><td>監査ログ・誰が何を入力したか</td><td>CloudTrail＋アプリ監査ログ、入出力の記録（保持・改ざん防止）</td><td>ALCOA+ Attributable／Complete（DI編）</td></tr>
+        <tr><td>人間による最終判断</td><td>ヒューマンインザループ（医師承認フロー）をワークフローに組込み</td><td>医師法（医行為）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 5 技術スタック 作る -->
+  <section>
+    <h2 class="make"><span class="n">5</span>技術スタック【作る側】</h2>
+    <table>
+      <thead><tr><th class="make">目的</th><th class="make">技術 / AWS 例</th><th class="make">規制との対応</th></tr></thead>
+      <tbody>
+        <tr><td>学習・推論基盤</td><td>Amazon SageMaker（学習／デプロイ／推論エンドポイント）</td><td>薬機法 SaMD（設計・検証）</td></tr>
+        <tr><td>モデル管理・来歴</td><td>SageMaker Model Registry（版管理）、学習データ・ハイパラ・評価のトレーサビリティ</td><td>IDATEN／PCCP の変更管理、ALCOA+ Original/Complete</td></tr>
+        <tr><td>市販後の性能監視</td><td>SageMaker Model Monitor（ドリフト検知）、性能指標ダッシュボード</td><td>IDATEN の前提（性能モニタリング）</td></tr>
+        <tr><td>劣化時の自動停止</td><td>閾値割れで推論停止・フォールバック・アラート</td><td>IDATEN の前提（性能低下時の停止）</td></tr>
+        <tr><td>学習データの完全性</td><td>データセットの出所・版・前処理の記録、改ざん検知（DI編の WORM／ハッシュ）</td><td>承認の土台＝データインテグリティ</td></tr>
+        <tr><td>検証・バリデーション</td><td>検証用データ分離、再現可能なパイプライン、GMLP 準拠の文書化</td><td>薬機法・GMLP・（EU）AI Act 高リスク要件</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 6 注意事項 -->
+  <section>
+    <h2><span class="n">6</span>よくある落とし穴（注意事項チェックリスト）</h2>
+    <ul class="chk">
+      <li><b>患者情報を消費者向け生成AIに貼る</b> → 要配慮個人情報の第三者提供・学習利用違反。法人/API＋非学習設定＋非識別化が前提。</li>
+      <li><b>「AIが出すだけ」と診断支援を承認なしで搭載</b> → 薬機法違反（無承認医療機器）。該当性・クラス分類を先に確定。</li>
+      <li><b>継続学習を野放しにする</b> → IDATEN/PCCP の枠外で性能が動く。変更計画＋監視＋自動停止をセットで設計。</li>
+      <li><b>ハルシネーションを人間検証なしで通す</b> → 医療では致命的。RAG で根拠提示＋医師レビュー（医師法）。</li>
+      <li><b>EU 市場を後から考える</b> → AI Act 高リスク要件は設計段階から。適用時期（2027〜2028で変動中）を追跡。</li>
+      <li><b>学習データの出所・完全性を記録しない</b> → 承認・再現性が崩れる。DI（ALCOA+）を学習データにも適用。</li>
+      <li><b>AIガバナンスを文書化しない</b> → AI事業者ガイドラインの「自社の立場と統制」を整理・記録（監査で問われる）。</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div class="refs">
+      <h3>出典（一次資料・公的情報）</h3>
+      <ul>
+        <li>個人情報保護法（医療情報＝要配慮個人情報）／個人情報保護委員会</li>
+        <li>次世代医療基盤法（医療分野の研究開発に資するための匿名加工医療情報に関する法律）— 改正法 2023年公布・<b>2024年4月1日施行</b>、仮名加工医療情報を創設</li>
+        <li>総務省・経済産業省「AI事業者ガイドライン」<b>第1.1版（令和7年〔2025年〕3月28日）</b>（第1.0版 2024年4月 → 第1.01版 2024年11月 → 第1.1版）</li>
+        <li>医師法（第17条 ほか、医行為）</li>
+        <li>薬機法（医薬品医療機器等法）— プログラム医療機器（SaMD）。PMDA「プログラム医療機器の薬事開発・承認申請に関する手引き」（最終更新 令和7年〔2025年〕4月）</li>
+        <li>IDATEN（変更計画確認制度、Improvement Design within Approval for Timely Evaluation and Notice）— AI 継続学習の薬事ルート</li>
+        <li>EU AI Act — 2024年8月発効、医療機器組込みAI＝高リスク。適用 2027年8月（Class IIb/III・C/D IVD）。2026年 Digital Omnibus で2028年8月への延期を議論中</li>
+        <li>米 FDA — AI/ML-based SaMD、PCCP（Predetermined Change Control Plan）、GMLP（Good Machine Learning Practice）</li>
+        <li>（接続）EU GMP Annex 11 改訂案（2026年央見込み）が AI/ML を GMP 配下に明示 — データインテグリティ編参照</li>
+        <li>厚労省「医療情報システムの安全管理に関するガイドライン 第6.0版（令和5年5月）」（外部サービス・クラウド利用の安全管理）</li>
+      </ul>
+    </div>
+    <div class="disc">本ガイドは 2026 年5月時点の公的・公式情報に基づく一般整理であり、特定の組織・製品・案件における適合性や十分性を保証するものではない。AI 関連の法規制は改定が速い（特に EU AI Act の適用時期は Digital Omnibus 等で変動中、AI事業者ガイドラインも版更新が続く）。医療機器該当性・クラス分類は PMDA 相談で、AWS のサービス名・実装例は採用環境で、最終確認すること。実際の適用にあたっては各原典・所管官庁・専門家の確認を前提とすること。</div>
+    <div class="sig">作成：X Harumi ／ 医療DX シリーズ・AI 活用編 ／ 最終更新：2026年5月</div>
+  </footer>
+
+</div>
+</body>
+</html>
